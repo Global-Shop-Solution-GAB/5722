@@ -1,0 +1,188 @@
+Program.Sub.ScreenSU.Start
+Gui.fmMain..Create
+Gui.fmMain..Caption("Select Kronos CSV File")
+Gui.fmMain..Size(7365,3090)
+Gui.fmMain..MinX(0)
+Gui.fmMain..MinY(0)
+Gui.fmMain..Position(0,0)
+Gui.fmMain..BackColor(-2147483633)
+Gui.fmMain..MousePointer(0)
+Gui.fmMain..Event(UnLoad,fmMain_UnLoad)
+Gui.fmMain.lblChoose.Create(Label,"Please select the Kronos CSV file to upload",True,3510,255,0,75,240,True,0,"Arial",8,-2147483633,0)
+Gui.fmMain.txtChoose.Create(TextBox,"",True,6045,300,0,75,450,True,0,"Arial",8,-2147483643,1)
+Gui.fmMain.txtChoose.TabStop(True)
+Gui.fmMain.txtChoose.TabIndex(1)
+Gui.fmMain.cmdSrcSrch.Create(Button)
+Gui.fmMain.cmdSrcSrch.Size(855,375)
+Gui.fmMain.cmdSrcSrch.Position(6210,420)
+Gui.fmMain.cmdSrcSrch.Caption("^")
+Gui.fmMain.cmdSrcSrch.Event(Click,cmdSrcSrch_Click)
+Gui.fmMain.cmdSrcSrch.TabStop(True)
+Gui.fmMain.cmdSrcSrch.TabIndex(2)
+Gui.fmMain.cmdExe.Create(Button)
+Gui.fmMain.cmdExe.Size(1860,375)
+Gui.fmMain.cmdExe.Position(2565,1980)
+Gui.fmMain.cmdExe.Caption("Create Batch File")
+Gui.fmMain.cmdExe.Event(Click,ReadCSV)
+Gui.fmMain.cmdExe.TabStop(True)
+Gui.fmMain.cmdExe.TabIndex(6)
+Gui.fmMain.lblDate.Create(Label,"Please select a payroll date",True,2250,255,0,90,1650,True,0,"Arial",8,-2147483633,0)
+Gui.fmMain.dtpPay.Create(DatePicker)
+Gui.fmMain.dtpPay.Size(2325,285)
+Gui.fmMain.dtpPay.Position(2370,1575)
+Gui.fmMain.dtpPay.TabStop(True)
+Gui.fmMain.dtpPay.TabIndex(5)
+Gui.fmMain.lblDst.Create(Label,"Please select a destination to save the converted file",True,4935,255,0,75,960,True,0,"Arial",8,-2147483633,0)
+Gui.fmMain.txtDst.Create(TextBox,"",True,6045,300,0,75,1155,True,0,"Arial",8,-2147483643,1)
+Gui.fmMain.txtDst.TabStop(True)
+Gui.fmMain.txtDst.TabIndex(3)
+Gui.fmMain.cmdDstSrch.Create(Button)
+Gui.fmMain.cmdDstSrch.Size(855,375)
+Gui.fmMain.cmdDstSrch.Position(6210,1110)
+Gui.fmMain.cmdDstSrch.Caption("^")
+Gui.fmMain.cmdDstSrch.Event(Click,cmdDstSrch_Click)
+Gui.fmMain.cmdDstSrch.TabStop(True)
+Gui.fmMain.cmdDstSrch.TabIndex(4)
+Program.Sub.ScreenSU.End
+
+Program.Sub.Preflight.Start
+Program.Sub.Preflight.End
+
+Program.Sub.Main.Start
+'TJS, October 2019
+'Customer: International Packaging Corp
+'Customer needs to upload CSV output by Kronos to a payroll journal entry.
+
+F.Intrinsic.Control.Try
+
+F.Intrinsic.Control.CallSub(SetIcon)
+Gui.fmMain..show
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(Error,"SubRoutine",V.Ambient.CurrentSubroutine,"eNumber",V.Ambient.ErrorNumber,"eDescription",V.Ambient.ErrorDescription)
+F.Intrinsic.Control.EndTry
+Program.Sub.Main.End
+
+Program.Sub.cmdSrcSrch_Click.Start
+F.Intrinsic.Control.Try
+V.Local.sFile.Declare
+
+'Allow Windows search for the file path and set
+Function.Intrinsic.UI.ShowOpenFileDiaLog("",,524288,V.Local.sFile)
+
+F.Intrinsic.Control.If(V.Local.sFile,<>,"***CANCEL***")
+	Gui.fmMain.txtChoose.Text(V.Local.sFile)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(Error,"SubRoutine",V.Ambient.CurrentSubroutine,"eNumber",V.Ambient.ErrorNumber,"eDescription",V.Ambient.ErrorDescription)
+F.Intrinsic.Control.EndTry
+Program.Sub.cmdSrcSrch_Click.End
+
+Program.Sub.cmdDstSrch_Click.Start
+F.Intrinsic.Control.Try
+V.Local.sDest.Declare
+
+'Windows select folder for destination
+F.Intrinsic.UI.FolderBrowser("Please select a destination folder",V.Local.sDest)
+
+F.Intrinsic.Control.If(V.Local.sDest,<>,"***CANCEL***")
+	Gui.fmMain.txtDst.Text(V.Local.sDest)
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(Error,"SubRoutine",V.Ambient.CurrentSubroutine,"eNumber",V.Ambient.ErrorNumber,"eDescription",V.Ambient.ErrorDescription)
+F.Intrinsic.Control.EndTry
+Program.Sub.cmdDstSrch_Click.End
+
+Program.Sub.ReadCSV.Start
+F.Intrinsic.Control.Try
+V.Local.sCSV.Declare
+V.Local.sOUT.Declare
+V.Local.sDate.Declare
+V.Local.sDest.Declare
+V.Local.iRet.Declare
+
+V.Local.sCSV.Set(V.Screen.fmMain!txtChoose.Text)
+V.Local.sDate.Set(V.Screen.fmMain!dtpPay.Value.PSQLFriendly)
+
+F.Intrinsic.String.Split(V.Local.sDate,"/",V.Local.sDate)
+F.Intrinsic.String.Build("{0}{1}{2}",V.Local.sDate(2),V.Local.sDate(0),V.Local.sDate(1),V.Local.sDate)
+
+F.Data.DataTable.CreateFromCSV("dtKronos",V.Local.sCSV,"Account*!*Account Description*!*Debit Amount*!*Credit Amount","STRING*!*STRING*!*STRING*!*STRING",True)
+
+F.Data.DataTable.DeleteRow("dtKronos",0)
+F.Data.DataTable.AddExpressionColumn("dtKronos","TEXT-ACCT-NO-1","STRING","[Account]")
+F.Data.DataTable.AddExpressionColumn("dtKronos","TEXT-DATE","STRING",V.Local.sDate)
+F.Data.DataTable.AddExpressionColumn("dtKronos","DebitFloat","FLOAT","CONVERT([Debit Amount],'System.Double')")
+F.Data.DataTable.AddExpressionColumn("dtKronos","CreditFloat","FLOAT","CONVERT([Credit Amount],'System.Double')")
+F.Data.DataTable.AddExpressionColumn("dtKronos","FLOAT_AMT","FLOAT","IIF(DebitFloat is null,[CreditFloat]*-1,[DebitFloat])")
+F.Data.DataTable.AddExpressionColumn("dtKronos","TEXT-AMT","STRING","[FLOAT_AMT]")
+F.Data.DataTable.AddColumn("dtKronos","FILLER","STRING")
+F.Data.DataTable.AddExpressionColumn("dtKronos","TEXT-ACCT-DESC","STRING","[Account Description]")
+F.Data.DataTable.AddColumn("dtKronos","TEXT-DESC","STRING")
+
+F.Data.DataView.Create("dtKronos","dvKronos",22)
+
+F.Data.DataView.ToString("dtKronos","dvKronos","TEXT-ACCT-NO-1*!*TEXT-DATE*!*TEXT-AMT*!*FILLER*!*TEXT-ACCT-DESC",V.Ambient.Tab,V.Ambient.NewLine,V.Local.sOUT)
+
+F.Data.DataView.Close("dtKronos","dvKronos")
+F.Data.DataTable.Close("dtKronos")
+
+F.Intrinsic.String.Build("ACCT-NO{0}DATE{0}AMT{0}DESC{1}{2}",V.Ambient.Tab,V.Ambient.NewLine,V.Local.sOUT,V.Local.sOUT)
+
+F.Intrinsic.String.Build("{0}\JEUPLD_PayDate{1}.txt",V.Screen.fmMain!txtDst.Text,V.Local.sDate,v.Local.sDest)
+
+F.Intrinsic.File.String2File(V.Local.sDest,V.Local.sOUT)
+
+F.Intrinsic.Task.LaunchGSSAsync("XPR095/J",,,V.Local.iRet)
+
+F.Intrinsic.Control.End
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(Error,"SubRoutine",V.Ambient.CurrentSubroutine,"eNumber",V.Ambient.ErrorNumber,"eDescription",V.Ambient.ErrorDescription)
+F.Intrinsic.Control.EndTry
+Program.Sub.ReadCSV.End
+
+Program.Sub.SetIcon.Start
+F.Intrinsic.Control.Try
+V.Local.sForm.Declare(String)
+V.Local.bExists.Declare(Boolean)
+V.Local.sIcon.Declare(String)
+V.Local.iCounter.Declare(Long)
+
+F.Intrinsic.String.Build("{0}\ART\gss2.ico",V.Caller.GlobalDir,v.Local.sIcon)
+F.Intrinsic.File.Exists(V.Local.sIcon, V.Local.bExists)
+F.Intrinsic.Control.If(V.Local.bExists.Not)
+    F.Intrinsic.String.Build("{0}\GAB\GAS\gss2.ico",V.Caller.PluginsDir,v.Local.sIcon)
+    F.Intrinsic.File.Exists(V.Local.sIcon, V.Local.bExists)
+    F.Intrinsic.Control.If(V.Local.bExists.Not)
+        F.Intrinsic.Control.ExitSub
+    F.Intrinsic.Control.EndIf
+F.Intrinsic.Control.EndIf
+
+F.Intrinsic.UI.GetFormList(V.Local.sForm)
+F.Intrinsic.String.Split(V.Local.sForm, "*!*", V.Local.sForm)
+
+F.Intrinsic.Control.For(V.Local.iCounter, 0, V.Local.sForm.UBound, 1)
+    Gui.[V.Local.sForm(V.Local.iCounter)]..Icon(V.Local.sIcon)
+F.Intrinsic.Control.Next(V.Local.iCounter)
+
+F.Intrinsic.Control.Catch
+	F.Intrinsic.Control.CallSub(Error,"SubRoutine",V.Ambient.CurrentSubroutine,"eNumber",V.Ambient.ErrorNumber,"eDescription",V.Ambient.ErrorDescription)
+F.Intrinsic.Control.EndTry
+Program.Sub.SetIcon.End
+
+Program.Sub.fmMain_UnLoad.Start
+F.Intrinsic.Control.End
+Program.Sub.fmMain_UnLoad.End
+
+Program.Sub.Error.Start
+V.Local.sError.Declare
+V.Local.iRet.Declare
+V.Local.sSep.Declare
+
+F.Intrinsic.String.Build("-------------------------------------------------------------------------------------",,V.Local.sSep)
+F.Intrinsic.String.Build("({5}-{6}){0}{7}{0}Project: {4}{0}{7}{0}Sub: {1}{0}Error: {2}, {3}", V.Ambient.NewLine, V.Args.SubRoutine, V.Args.eNumber, V.Args.eDescription,V.Caller.ScriptFile,V.Ambient.Date, V.Ambient.Time,V.Local.sSep,V.Local.sError)
+F.Intrinsic.UI.Msgbox(V.Local.sError,"Error",V.Local.iRet)
+Program.Sub.Error.End
